@@ -11,7 +11,8 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_FILE = BASE_DIR / "data" / "words_fr.txt"
+WORDS_DIR = Path(os.getenv("WORDS_DIR", str(BASE_DIR / "data" / "cemantix")))
+DATA_FILE = Path(os.getenv("WORDS_FILE", str(WORDS_DIR / "words_fr.txt")))
 DATABASE_PATH = os.getenv("DATABASE_PATH", str(BASE_DIR / "cemantix_local.db"))
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "changeme")
 PORT = int(os.getenv("PORT", "5000"))
@@ -71,9 +72,49 @@ def init_db() -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
         conn.commit()
     finally:
         conn.close()
+
+
+def get_manual_target() -> str | None:
+    conn = sqlite3.connect(DATABASE_PATH)
+    try:
+        row = conn.execute("SELECT value FROM settings WHERE key = 'manual_target'").fetchone()
+    finally:
+        conn.close()
+    return row[0] if row else None
+
+
+def set_manual_target(target: str) -> None:
+    conn = sqlite3.connect(DATABASE_PATH)
+    try:
+        conn.execute(
+            """
+            INSERT INTO settings (key, value, updated_at)
+            VALUES ('manual_target', ?, ?)
+            ON CONFLICT(key) DO UPDATE SET
+                value = excluded.value,
+                updated_at = excluded.updated_at
+            """,
+            (target, dt.datetime.utcnow().isoformat()),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def active_target() -> str:
+    return get_manual_target() or daily_target(WORDS)
 
 
 def save_guess(pseudo: str | None, guess: str, score: int, target: str, is_win: bool) -> None:
@@ -116,13 +157,43 @@ def admin_stats() -> dict:
             LIMIT 20
             """
         ).fetchall()
+        score_distribution = conn.execute(
+            """
+            SELECT
+                CASE
+                    WHEN score < 20 THEN '0-19'
+                    WHEN score < 40 THEN '20-39'
+                    WHEN score < 60 THEN '40-59'
+                    WHEN score < 80 THEN '60-79'
+                    ELSE '80-100'
+                END AS bucket,
+                COUNT(*)
+            FROM guesses
+            GROUP BY bucket
+            ORDER BY bucket
+            """
+        ).fetchall()
+        guesses_by_day = conn.execute(
+            """
+            SELECT substr(created_at, 1, 10) AS day, COUNT(*)
+            FROM guesses
+            GROUP BY day
+            ORDER BY day DESC
+            LIMIT 14
+            """
+        ).fetchall()
     finally:
         conn.close()
+
+    ordered_buckets = ["0-19", "20-39", "40-59", "60-79", "80-100"]
+    bucket_map = {bucket: count for bucket, count in score_distribution}
 
     return {
         "total_guesses": total_guesses,
         "total_wins": total_wins,
         "avg_score": round(float(avg_score), 2),
+        "active_target": active_target(),
+        "target_source": "manuel" if get_manual_target() else "quotidien",
         "top_players": [
             {"player": r[0], "attempts": r[1], "best_score": r[2]} for r in top_players_rows
         ],
@@ -135,6 +206,12 @@ def admin_stats() -> dict:
                 "is_win": bool(r[4]),
             }
             for r in recent_rows
+        ],
+        "score_distribution": [
+            {"bucket": bucket, "count": bucket_map.get(bucket, 0)} for bucket in ordered_buckets
+        ],
+        "guesses_by_day": [
+            {"day": row[0], "count": row[1]} for row in reversed(guesses_by_day)
         ],
     }
 
@@ -184,9 +261,6 @@ class CemantixHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
-        if parsed.path != "/api/guess":
-            self.send_error(HTTPStatus.NOT_FOUND)
-            return
 
         content_length = int(self.headers.get("Content-Length", "0"))
         body = self.rfile.read(content_length)
@@ -195,25 +269,52 @@ class CemantixHandler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             return self._send_json({"error": "JSON invalide."}, status=HTTPStatus.BAD_REQUEST)
 
-        guess = (payload.get("guess") or "").strip().lower()
-        pseudo = (payload.get("pseudo") or "").strip() or None
+        if parsed.path == "/api/guess":
+            guess = (payload.get("guess") or "").strip().lower()
+            pseudo = (payload.get("pseudo") or "").strip() or None
 
-        if not guess:
-            return self._send_json({"error": "Le mot proposé est vide."}, status=HTTPStatus.BAD_REQUEST)
+            if not guess:
+                return self._send_json({"error": "Le mot proposé est vide."}, status=HTTPStatus.BAD_REQUEST)
 
-        target = daily_target(WORDS)
-        score = similarity_score(guess, target)
-        is_win = guess == target
-        save_guess(pseudo, guess, score, target, is_win)
+            target = active_target()
+            score = similarity_score(guess, target)
+            is_win = guess == target
+            save_guess(pseudo, guess, score, target, is_win)
 
-        return self._send_json(
-            {
-                "guess": guess,
-                "score": score,
-                "is_win": is_win,
-                "message": "Bravo, vous avez trouvé le mot du jour !" if is_win else "Continuez !",
-            }
-        )
+            return self._send_json(
+                {
+                    "guess": guess,
+                    "score": score,
+                    "is_win": is_win,
+                    "message": "🎉 Bravo, vous avez trouvé le mot du jour !"
+                    if is_win
+                    else "💪 Continuez !",
+                }
+            )
+
+        if parsed.path == "/api/admin/target":
+            token = (payload.get("token") or "").strip()
+            if token != ADMIN_TOKEN:
+                return self._send_json({"error": "Token admin invalide."}, status=HTTPStatus.FORBIDDEN)
+
+            new_target = (payload.get("target") or "").strip().lower()
+            if new_target not in WORDS:
+                return self._send_json(
+                    {
+                        "error": "Mot invalide : il doit exister dans le dictionnaire Cemantix local."
+                    },
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+            set_manual_target(new_target)
+            return self._send_json(
+                {
+                    "message": "Mot du jour mis à jour.",
+                    "active_target": new_target,
+                    "target_source": "manuel",
+                }
+            )
+
+        self.send_error(HTTPStatus.NOT_FOUND)
 
 
 def create_server() -> ThreadingHTTPServer:

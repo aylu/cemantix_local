@@ -10,6 +10,7 @@ class AppTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         os.environ["DATABASE_PATH"] = os.path.join(self.tmp.name, "test.db")
         os.environ["ADMIN_TOKEN"] = "changeme"
+        os.environ["WORDS_DIR"] = "data/cemantix"
         import app
 
         self.app = importlib.reload(app)
@@ -32,6 +33,10 @@ class AppTests(unittest.TestCase):
         stats = self.app.admin_stats()
         self.assertGreaterEqual(stats["total_guesses"], 1)
         self.assertEqual(stats["top_players"][0]["player"], "bob")
+
+    def test_manual_target_override(self):
+        self.app.set_manual_target("chat")
+        self.assertEqual(self.app.active_target(), "chat")
 
 
 if __name__ == "__main__":

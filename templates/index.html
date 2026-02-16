@@ -8,8 +8,14 @@
   </head>
   <body>
     <main class="container">
-      <h1>Cemantix Local</h1>
-      <p>Devinez le mot du jour (prototype local).</p>
+      <h1>🧠 Cemantix Local</h1>
+      <p>Devinez le mot du jour (prototype local), puis célébrez votre victoire 🎯</p>
+
+      <section id="victory-screen" class="card victory hidden">
+        <h2>🏆 Victoire !</h2>
+        <p>Bravo, vous avez trouvé le mot du jour.</p>
+        <p>Le jeu est verrouillé jusqu'à un changement de mot.</p>
+      </section>
 
       <form id="guess-form" class="card">
         <label>
@@ -20,11 +26,19 @@
           Votre proposition
           <input type="text" id="guess" placeholder="Entrez un mot" required />
         </label>
-        <button type="submit">Tester</button>
+        <button type="submit">Tester 🚀</button>
       </form>
 
+      <section class="card">
+        <h2>📈 Progression de la session</h2>
+        <div class="progress-wrap">
+          <div id="progress-bar" class="progress-bar" style="width: 0%">0%</div>
+        </div>
+        <p id="progress-text">Meilleur score : 0/100</p>
+      </section>
+
       <section>
-        <h2>Historique de la session</h2>
+        <h2>📝 Historique de la session</h2>
         <ul id="history"></ul>
       </section>
     </main>

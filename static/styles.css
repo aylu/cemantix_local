@@ -5,12 +5,12 @@
 
 body {
   margin: 0;
-  background: #111827;
+  background: linear-gradient(180deg, #111827 0%, #0f172a 100%);
   color: #e5e7eb;
 }
 
 .container {
-  max-width: 720px;
+  max-width: 760px;
   margin: 2rem auto;
   padding: 0 1rem;
 }
@@ -41,6 +41,12 @@ button {
   background: #2563eb;
   color: white;
   cursor: pointer;
+  font-weight: 600;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 ul {
@@ -55,6 +61,38 @@ ul {
   color: #fca5a5;
 }
 
+.success {
+  color: #86efac;
+}
+
 .win {
   color: #86efac;
+  font-weight: 700;
+}
+
+.victory {
+  border-color: #f59e0b;
+  background: #2b1f0f;
+}
+
+.progress-wrap {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  min-height: 26px;
+  background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  font-weight: 700;
+  text-align: center;
+}
+
+canvas {
+  width: 100%;
+  border: 1px solid #334155;
+  background: #111827;
+  border-radius: 10px;
 }
