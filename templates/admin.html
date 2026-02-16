@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - Cemantix Local</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>Admin Cemantix Local</h1>
+      <p>Consultez les statistiques globales.</p>
+
+      <form id="admin-form" class="card">
+        <label>
+          Token admin
+          <input type="password" id="token" placeholder="ADMIN_TOKEN" required />
+        </label>
+        <button type="submit">Charger les stats</button>
+      </form>
+
+      <section id="stats" class="card hidden">
+        <p><strong>Nombre de tentatives :</strong> <span id="total-guesses"></span></p>
+        <p><strong>Nombre de victoires :</strong> <span id="total-wins"></span></p>
+        <p><strong>Score moyen :</strong> <span id="avg-score"></span></p>
+
+        <h2>Top joueurs</h2>
+        <ul id="top-players"></ul>
+
+        <h2>Dernières tentatives</h2>
+        <ul id="recent"></ul>
+      </section>
+
+      <p id="admin-error" class="error"></p>
+    </main>
+
+    <script src="/static/admin.js"></script>
+  </body>
+</html>
