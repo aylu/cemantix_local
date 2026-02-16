@@ -1,0 +1,60 @@
+:root {
+  color-scheme: light dark;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #111827;
+  color: #e5e7eb;
+}
+
+.container {
+  max-width: 720px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.card {
+  display: grid;
+  gap: 0.8rem;
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+label {
+  display: grid;
+  gap: 0.3rem;
+}
+
+input,
+button {
+  padding: 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #4b5563;
+}
+
+button {
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+ul {
+  padding-left: 1.2rem;
+}
+
+.hidden {
+  display: none;
+}
+
+.error {
+  color: #fca5a5;
+}
+
+.win {
+  color: #86efac;
+}
