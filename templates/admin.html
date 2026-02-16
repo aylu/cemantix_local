@@ -8,21 +8,38 @@
   </head>
   <body>
     <main class="container">
-      <h1>Admin Cemantix Local</h1>
-      <p>Consultez les statistiques globales.</p>
+      <h1>🛠️ Admin Cemantix Local</h1>
+      <p>Consultez les statistiques globales et changez le mot actif.</p>
 
       <form id="admin-form" class="card">
         <label>
           Token admin
           <input type="password" id="token" placeholder="ADMIN_TOKEN" required />
         </label>
-        <button type="submit">Charger les stats</button>
+        <button type="submit">Charger les stats 📊</button>
+      </form>
+
+      <form id="target-form" class="card hidden">
+        <h2>🎯 Changer le mot actif</h2>
+        <p>Le mot doit exister dans le dictionnaire Cemantix local.</p>
+        <label>
+          Nouveau mot
+          <input type="text" id="new-target" placeholder="ex: voiture" required />
+        </label>
+        <button type="submit">Appliquer le mot</button>
       </form>
 
       <section id="stats" class="card hidden">
         <p><strong>Nombre de tentatives :</strong> <span id="total-guesses"></span></p>
         <p><strong>Nombre de victoires :</strong> <span id="total-wins"></span></p>
         <p><strong>Score moyen :</strong> <span id="avg-score"></span></p>
+        <p><strong>Mot actif :</strong> <span id="active-target"></span> (<span id="target-source"></span>)</p>
+
+        <h2>📉 Distribution des scores</h2>
+        <canvas id="score-chart" width="680" height="220"></canvas>
+
+        <h2>📆 Tentatives par jour</h2>
+        <canvas id="day-chart" width="680" height="220"></canvas>
 
         <h2>Top joueurs</h2>
         <ul id="top-players"></ul>
@@ -32,6 +49,7 @@
       </section>
 
       <p id="admin-error" class="error"></p>
+      <p id="admin-success" class="success"></p>
     </main>
 
     <script src="/static/admin.js"></script>
